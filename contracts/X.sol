@@ -9,10 +9,15 @@ contract X {
         uint256 likes;
     }
 
+    uint16 constant MAX_POST_LENGTH = 280;
+
+    uint256 postCount = 0;
     address[] public users;
     mapping(address => Post[]) public posts;
 
     function post(string memory _content) public {
+        require(bytes(_content).length < MAX_POST_LENGTH, "Post content length can't surpass 280 characters.");
+
         Post memory newPost = Post({
             author: msg.sender,
             content: _content,
@@ -35,12 +40,14 @@ contract X {
         return posts[_user][_id];
     }
 
-    function getAllPosts() public view returns (Post[] memory) {
-        uint256 postCount = 0;
-
+    function getPostCount() private {
         for (uint256 i = 0; i < users.length; i++) {
             postCount += posts[users[i]].length;
         }
+    }
+
+    function getAllPosts() public returns (Post[] memory) {
+        getPostCount();
 
         Post[] memory result = new Post[](postCount);
 
