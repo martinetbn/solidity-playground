@@ -42,24 +42,23 @@ contract X {
         users.push(_user);
     }
 
-    function isPostValid(address _user, uint256 _id) private view {
+    modifier isPostValid(address _user, uint256 _id) {
         require(_id < posts[_user].length, "Couldn't find the requested post.");
+        _;
     }
 
-    function getPost(address _user, uint256 _id) public view returns (Post memory) {
-        isPostValid(_user, _id);
+    function getPost(address _user, uint256 _id) public isPostValid(_user, _id) view returns (Post memory) {
         return posts[_user][_id];
     }
 
-    function getPostCount() private {
+    modifier getPostCount() {
         for (uint256 i = 0; i < users.length; i++) {
             postCount += posts[users[i]].length;
         }
+        _;
     }
 
-    function getAllPosts() public returns (Post[] memory) {
-        getPostCount();
-
+    function getAllPosts() public getPostCount() returns (Post[] memory) {
         Post[] memory result = new Post[](postCount);
 
         uint256 counter = 0;
@@ -74,9 +73,7 @@ contract X {
         return result;
     }
 
-    function likePost(address _user, uint256 _id) public {
-        isPostValid(_user, _id);
-
+    function likePost(address _user, uint256 _id) public isPostValid(_user, _id) {
         for(uint256 i = 0; i < likedPosts[msg.sender].length; i++){
             require(likedPosts[msg.sender][i].author != _user && likedPosts[msg.sender][i].id != _id, "You have already liked this post.");
         }
