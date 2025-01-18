@@ -9,11 +9,17 @@ contract X {
         uint256 likes;
     }
 
+    struct LikedPost{
+        address author;
+        uint256 id;
+    }
+
     uint16 constant MAX_POST_LENGTH = 280;
 
     uint256 postCount = 0;
     address[] public users;
     mapping(address => Post[]) public posts;
+    mapping(address => LikedPost[]) public likedPosts;
 
     function post(string memory _content) public {
         require(bytes(_content).length < MAX_POST_LENGTH, "Post content length can't surpass 280 characters.");
@@ -36,8 +42,12 @@ contract X {
         users.push(_user);
     }
 
-    function getPost(address _user, uint256 _id) public view returns (Post memory) {
+    function isPostValid(address _user, uint256 _id) private view {
         require(_id < posts[_user].length, "Couldn't find the requested post.");
+    }
+
+    function getPost(address _user, uint256 _id) public view returns (Post memory) {
+        isPostValid(_user, _id);
         return posts[_user][_id];
     }
 
@@ -62,5 +72,16 @@ contract X {
         }
 
         return result;
+    }
+
+    function likePost(address _user, uint256 _id) public {
+        isPostValid(_user, _id);
+
+        for(uint256 i = 0; i < likedPosts[msg.sender].length; i++){
+            require(likedPosts[msg.sender][i].author != _user && likedPosts[msg.sender][i].id != _id, "You have already liked this post.");
+        }
+
+        likedPosts[msg.sender].push(LikedPost(_user, _id));
+        posts[_user][_id].likes++;
     }
 }
