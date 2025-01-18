@@ -37,6 +37,7 @@ contract X {
     }
 
     function getPost(address _user, uint256 _id) public view returns (Post memory) {
+        require(_id < posts[_user].length, "Post does not exist.");
         return posts[_user][_id];
     }
 
