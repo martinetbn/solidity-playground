@@ -9,20 +9,25 @@ contract X {
         uint256 likes;
     }
 
-    struct LikedPost{
+    struct LikedPost {
         address author;
         uint256 id;
     }
 
+    error ExceededCharacters(uint256 characters);
+    error PostNotFound(address user, uint256 id);
+    error AlreadyLikedPost(address user, uint256 id);
+
     uint16 constant MAX_POST_LENGTH = 280;
 
-    uint256 postCount = 0;
     address[] public users;
     mapping(address => Post[]) public posts;
     mapping(address => LikedPost[]) public likedPosts;
 
     function post(string memory _content) public {
-        require(bytes(_content).length < MAX_POST_LENGTH, "Post content length can't surpass 280 characters.");
+        if (bytes(_content).length > MAX_POST_LENGTH) {
+            revert ExceededCharacters(bytes(_content).length);
+        }
 
         Post memory newPost = Post({
             author: msg.sender,
@@ -43,22 +48,28 @@ contract X {
     }
 
     modifier isPostValid(address _user, uint256 _id) {
-        require(_id < posts[_user].length, "Couldn't find the requested post.");
-        _;
-    }
-
-    function getPost(address _user, uint256 _id) public isPostValid(_user, _id) view returns (Post memory) {
-        return posts[_user][_id];
-    }
-
-    modifier getPostCount() {
-        for (uint256 i = 0; i < users.length; i++) {
-            postCount += posts[users[i]].length;
+        if (_id + 1 > posts[_user].length) {
+            revert PostNotFound(_user, _id);
         }
         _;
     }
 
-    function getAllPosts() public getPostCount() returns (Post[] memory) {
+    function getPost(address _user, uint256 _id)
+        public
+        view
+        isPostValid(_user, _id)
+        returns (Post memory)
+    {
+        return posts[_user][_id];
+    }
+
+    function getAllPosts() public view returns (Post[] memory) {
+        uint256 postCount = 0;
+
+        for (uint256 i = 0; i < users.length; i++) {
+            postCount += posts[users[i]].length;
+        }
+
         Post[] memory result = new Post[](postCount);
 
         uint256 counter = 0;
@@ -73,9 +84,14 @@ contract X {
         return result;
     }
 
-    function likePost(address _user, uint256 _id) public isPostValid(_user, _id) {
-        for(uint256 i = 0; i < likedPosts[msg.sender].length; i++){
-            require(likedPosts[msg.sender][i].author != _user && likedPosts[msg.sender][i].id != _id, "You have already liked this post.");
+    function likePost(address _user, uint256 _id)
+        public
+        isPostValid(_user, _id)
+    {
+        for (uint256 i = 0; i < likedPosts[msg.sender].length; i++) {
+            if(likedPosts[msg.sender][i].author == _user && likedPosts[msg.sender][i].id == _id){
+                revert AlreadyLikedPost(_user, _id);
+            }
         }
 
         likedPosts[msg.sender].push(LikedPost(_user, _id));
